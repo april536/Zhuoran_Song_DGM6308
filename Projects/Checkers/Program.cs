@@ -61,8 +61,10 @@ Game ShowIntroScreenAndGetOption() {//show the game introduction screen
 void RunGameLoop(Game game) {//the main game loop
     while (game.Winner is null) {//run the loop until there is a winner
         Player currentPlayer = game.Players.First(player => player.Color == game.Turn);//get the player who's color is same as the current turn
+        currentPlayer.Stamina = 2;//initialize the player's stamina as 2
+
         if (currentPlayer.IsHuman) {
-            while (game.Turn == currentPlayer.Color) {//run the loop until the current player's turn is over
+            while (game.Turn == currentPlayer.Color && currentPlayer.Stamina != 0) {//run the loop until the current player's turn is over
                 (int X, int Y)? selectionStart = null;
                 (int X, int Y)? from = game.Board.Aggressor is not null ? (game.Board.Aggressor.X, game.Board.Aggressor.Y) : null;//get the aggressor piece
 
@@ -74,12 +76,12 @@ void RunGameLoop(Game game) {//the main game loop
                 }
 
                 while (from is null) {//let the player select the piece to move
-                    from = HumanMoveSelection(game);
+                    from = HumanMoveSelection(game, currentPlayer: currentPlayer);
                     selectionStart = from;
                 }
 
                 //let the player select the destination to move, take the game information, selection start and from position as parameter
-                (int X, int Y)? to = HumanMoveSelection(game, selectionStart: selectionStart, from: from);
+                (int X, int Y)? to = HumanMoveSelection(game, selectionStart: selectionStart, from: from, currentPlayer: currentPlayer);
                 Piece? piece = null;//initialize the piece as null
                 piece = game.Board[from.Value.X, from.Value.Y];//get the position selected by the player
                 
@@ -90,39 +92,47 @@ void RunGameLoop(Game game) {//the main game loop
 
                 if (from is not null && to is not null) {//if this move is valid, perform the move
                     Move? move = game.Board.ValidateMove(game.Turn, from.Value, to.Value);//check if the move is valid
-                    if (move is not null &&//if the move is not null and the piece to move is the aggressor or the aggressor is null
+                    //if the move is not null and the piece to move is the aggressor or the aggressor is null
+                    if (move is not null &&
                         (game.Board.Aggressor is null || move.PieceToMove == game.Board.Aggressor)) {
-                        game.PerformMove(move);//perform the move
+                        game.PerformMove(move, game);//perform the move
                     }
-                }
+                }                
             }
         } else {//if it is computer's turn
-            List<Move> moves = game.Board.GetPossibleMoves(game.Turn);//get the possible moves from the games cs in this turn
-            List<Move> captures = moves.Where(move => move.PieceToCapture is not null).ToList();//initialize the possible move with captures list
-            
-            if (captures.Count > 0) {//if there is a capture move, get a random move from the capture list
-                game.PerformMove(captures[Random.Shared.Next(captures.Count)]);
-            } 
-            else if(!game.Board.Pieces.Any(piece => piece.Color == game.Turn && !piece.Promoted)) {
-                //if there is no capture move, and there's no current player piece have been promoted
-                var (a, b) = game.Board.GetClosestRivalPieces(game.Turn);//get the closest rival pieces
-                Move? priorityMove = moves.FirstOrDefault(move => move.PieceToMove == a && Board.IsTowards(move, b));
-                //the priority move is the first move in the list that can move the piece to the closest rival piece
-                game.PerformMove(priorityMove ?? moves[Random.Shared.Next(moves.Count)]);
-                //perform the move defined, if it is null, get a random move from the moves list
-            } 
-            else {
-                game.PerformMove(moves[Random.Shared.Next(moves.Count)]);
-                //if there is no capture move, and there's a current player piece have been promoted, get a random move from the moves list
+            while(game.Turn == currentPlayer.Color && currentPlayer.Stamina != 0) {//run the loop until the current player's turn is over
+                List<Move> moves = game.Board.GetPossibleMoves(game.Turn);//get the possible moves of the current player
+                List<Move> captures = moves.Where(move => move.PieceToCapture is not null).ToList();//initialize the possible move with captures list
+                
+                if (captures.Count > 0) {//if there is a capture move, get a random move from the capture list
+                    game.PerformMove(captures[Random.Shared.Next(captures.Count)], game);
+                } 
+                else if(!game.Board.Pieces.Any(piece => piece.Color == game.Turn && !piece.Promoted)) {
+                    //if there is no capture move, and there's no current player piece have been promoted
+                    var (a, b) = game.Board.GetClosestRivalPieces(game.Turn);//get the closest rival pieces
+                    Move? priorityMove = moves.FirstOrDefault(move => move.PieceToMove == a && Board.IsTowards(move, b));
+                    //the priority move is the first move in the list that can move the piece to the closest rival piece
+                    game.PerformMove(priorityMove ?? moves[Random.Shared.Next(moves.Count)], game);
+                    //perform the move defined, if it is null, get a random move from the moves list
+                } 
+                else {
+                    game.PerformMove(moves[Random.Shared.Next(moves.Count)], game);
+                    //if there is no capture move, and there's a current player piece have been promoted, get a random move from the moves list
+                }
+
+                //render the game state with the current player moved
+                RenderGameState(game);
+                if (currentPlayer.Stamina > 0) Thread.Sleep(1000);//if the player's stamina is more than 0, sleep for 500ms      
             }
         }
-
         RenderGameState(game, playerMoved: currentPlayer, promptPressKey: true);//render the game state with the current player moved
         Console.ReadKey(true);
     }
 }
 
-//render the game state with the game information, player moved, selection, from position, and prompt press key as parameter
+//render the game state with 5 variables as parameter
+//Game means the game object, playerMoved means the player who moved, selection means the selected position
+//from means the position to move from, promptPressKey means if the player need to press any key to continue
 void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? selection = null, (int X, int Y)? from = null, bool promptPressKey = false) {
     const char BlackPiece = '○';
     const char BlackKing  = '☺';
@@ -148,27 +158,35 @@ void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? sele
     sb.AppendLine($"    ╚═══════════════════╝");
     sb.AppendLine($"       A B C D E F G H");
     sb.AppendLine();
-    if (selection is not null) {//use the bracket to show the selected position if the selection is not null
+
+    //Show the selected position (if the selection is not null)
+    if (selection is not null) {
         sb.Replace(" $ ", $"[{ToChar(game.Board[selection.Value.X, selection.Value.Y])}]");
     }
-    if (from is not null) {//search for the selected position and give a <> at the outside of the position
+
+    //search for the selected position and give a <> at the outside of the position
+    if (from is not null) {
         char fromChar = ToChar(game.Board[from.Value.X, from.Value.Y]);
         sb.Replace(" @ ", $"<{fromChar}>");
         sb.Replace("@ ",  $"{fromChar}>");
         sb.Replace(" @",  $"<{fromChar}");
     }
+
+    Player currentPlayer = game.Players.First(player => player.Color == game.Turn);
     PieceColor? wc = game.Winner;//get the color of all needed parameters
-    PieceColor? mc = playerMoved?.Color;
     PieceColor? tc = game.Turn;
-    // Note: these strings need to match in length
-    // so they overwrite each other.
-    string w = $"  *** {wc} wins ***";
-    string m = $"  {mc} moved       ";
-    string t = $"  {tc}'s turn      ";
-    sb.AppendLine(//show the string needed in different conditions
-        game.Winner is not null ? w :
-        playerMoved is not null ? m :
-        t);
+    int mc = currentPlayer.Stamina;
+    int rs = currentPlayer.Stimulant;
+    PieceColor? mp = playerMoved?.Color;
+    
+    string w = $"  *** {wc} wins ***\n                   \n                   \n                   ";
+    string t = $"  {tc}'s turn      \n  Stamina: {mc}    \n  Press P to use:  \n  Stimulant: {rs}  ";
+    string m = $"  {mp} moved       \n                   \n                   \n                   ";
+    sb.AppendLine(
+    game.Winner is not null ? w :
+    playerMoved is not null ? m :
+    t);//show the string needed in different conditions
+
     string p = "  Press any key to continue...";
     string s = "                              ";
     sb.AppendLine(promptPressKey ? p : s);
@@ -190,8 +208,8 @@ void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? sele
         };
 }
 
-//a position deal with human selected moving destination that takes game information, selection start and from position as parameter
-(int X, int Y)? HumanMoveSelection(Game game, (int X, int y)? selectionStart = null, (int X, int Y)? from = null) {
+//a position deal with human selected moving destination that takes 3 variable as parameter
+(int X, int Y)? HumanMoveSelection(Game game, (int X, int y)? selectionStart = null, (int X, int Y)? from = null, Player? currentPlayer = null) {
     (int X, int Y) selection = selectionStart ?? (3, 3);//initislize the selection position as 3,3 if it is null
     while (true) {
         RenderGameState(game, selection: selection, from: from);//render game state with the given parameter
@@ -200,6 +218,30 @@ void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? sele
             case ConsoleKey.UpArrow:    selection.Y = Math.Min(7, selection.Y + 1); break;
             case ConsoleKey.LeftArrow:  selection.X = Math.Max(0, selection.X - 1); break;
             case ConsoleKey.RightArrow: selection.X = Math.Min(7, selection.X + 1); break;
+            case ConsoleKey.A:
+                selection.X = Math.Max(0, selection.X - 1);
+                selection.Y = Math.Max(0, selection.Y - 1);
+                break;
+            case ConsoleKey.D:
+                selection.X = Math.Min(7, selection.X + 1);
+                selection.Y = Math.Max(0, selection.Y - 1);
+                break;
+            case ConsoleKey.Q:
+                selection.X = Math.Max(0, selection.X - 1);
+                selection.Y = Math.Min(7, selection.Y + 1);
+                break;
+            case ConsoleKey.E:
+                selection.X = Math.Min(7, selection.X + 1);
+                selection.Y = Math.Min(7, selection.Y + 1);
+                break;
+            //press P to use the stimulant, add a stamina to the human player, and render the game state
+            case ConsoleKey.P:
+                if (currentPlayer.Stimulant > 0) {
+                    currentPlayer.Stimulant--;
+                    currentPlayer.Stamina++;
+                    RenderGameState(game, selection: selection, from: from);
+                }
+            break;
             case ConsoleKey.Enter:      return selection;//only return the selection when the user press enter
             case ConsoleKey.Escape:     return null;
         }
