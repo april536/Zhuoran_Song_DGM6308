@@ -113,6 +113,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reversi", "Projects\Reversi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "First Person Shooter", "Projects\First Person Shooter\First Person Shooter.csproj", "{5A18DEF8-A8C3-4B5B-B127-9BA0A0767287}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Projects", "Projects", "{3572023D-22FF-4350-BAC7-F62E70F0D448}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "War", "War", "{1BC90555-0A0D-480D-B6AF-31FDE8DC8EA3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "War", "Projects\War\War\War.csproj", "{E00E55BF-3979-40A5-B9D6-EE25A2EB62A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -339,11 +345,19 @@ Global
 		{5A18DEF8-A8C3-4B5B-B127-9BA0A0767287}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A18DEF8-A8C3-4B5B-B127-9BA0A0767287}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A18DEF8-A8C3-4B5B-B127-9BA0A0767287}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E00E55BF-3979-40A5-B9D6-EE25A2EB62A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E00E55BF-3979-40A5-B9D6-EE25A2EB62A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E00E55BF-3979-40A5-B9D6-EE25A2EB62A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E00E55BF-3979-40A5-B9D6-EE25A2EB62A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EC4CAF97-A0CE-4999-8062-EC511A41764F}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1BC90555-0A0D-480D-B6AF-31FDE8DC8EA3} = {3572023D-22FF-4350-BAC7-F62E70F0D448}
+		{E00E55BF-3979-40A5-B9D6-EE25A2EB62A5} = {1BC90555-0A0D-480D-B6AF-31FDE8DC8EA3}
 	EndGlobalSection
 EndGlobal
