@@ -75,9 +75,7 @@ finally{
 }
 
 
-
-
-class Card {//a class of cards with 2 properties
+class Card {//a class of cards with 2 kinds of properties
     public Suit Suit;
     public Value Value;
 }
