@@ -2,8 +2,6 @@
 //the class about game core mechanics
 public class Game {
     private const int PiecesPerColor = 12;//initial number of pieces per color as private constant
-
-    //authorized method to get and set properties of the class Game
     public PieceColor Turn { get; private set; }//color of the current player
     public Board Board { get; }//game board
     public PieceColor? Winner { get; private set; }//color of the winner
@@ -23,6 +21,12 @@ public class Game {
 
     public void PerformMove(Move move, Game game) {//perform the move of the player from the move list from logic
         Player currentPlayer = game.Players.First(player => player.Color == game.Turn);//get the player who's color is same as the current turn
+        
+        //if the current player has stamina, and the piece to move is not the aggressor, save the piece state
+        if (currentPlayer.Stamina != 0 && move.PieceToMove != game.Board.Aggressor) {
+            currentPlayer.PieceSaves.Push(game.SavePieceState());//add the current state of the pieces to the stack
+        }
+
         //move the piece to the target position, giving the target position's x,y to the piece's x,y
         (move.PieceToMove.X, move.PieceToMove.Y) = move.To;
 
@@ -44,11 +48,12 @@ public class Game {
         //if there's no more pieces to be captured, set the aggressor to null and change the turn to the other player
         else {
             Board.Aggressor = null;
-            if(currentPlayer.Stamina == 1) Turn = Turn is Black ? White : Black;
+            if(currentPlayer.Stamina == 1) Turn = Turn is Black ? White : Black;//switch the turn to the other player
         }
         CheckForWinner();//check if there's a winner after the move
         if(currentPlayer.Stamina != 0 && move.PieceToMove != game.Board.Aggressor) {
             currentPlayer.Stamina --;//reduce the player's stamina by 1n when no more pieces can be captured
+            currentPlayer.MovedNum ++;//increase the player's moved number by 1, to prevent the player from undo the other player's piece
         }
     }
 
@@ -67,4 +72,21 @@ public class Game {
 
     public int TakenCount(PieceColor colour) =>//method to count the number of pieces taken by the otjer player
         PiecesPerColor - Board.Pieces.Count(piece => piece.Color == colour);
+
+    public List<Piece> SavePieceState() {//save the current state of the pieces on the board， return the list with information of all pieces
+        return Board.Pieces.Select//a methoud to give all the pieces on the board a new copy using the transform function
+        (p => new Piece {
+            X = p.X,
+            Y = p.Y,
+            Color = p.Color,
+            Promoted = p.Promoted
+        })//transform function to give the piece a new copy, p is the piece now on the board
+        .ToList();//transform the sequence containing the pieces to a list
+    }
+
+    public void RestorePieceState(List<Piece> savedPieces) {//method to restore the pieces' state
+        Board.Pieces.Clear();//clear the pieces on the board
+        Board.Pieces.AddRange(savedPieces);//add the saved pieces to the board using AddRange method, which adds the elements of the specified collection to the end of the List<T>
+        Board.Aggressor = null;//clear the aggressor
+    }
 }

@@ -59,11 +59,14 @@ Game ShowIntroScreenAndGetOption() {//show the game introduction screen
 }
 
 void RunGameLoop(Game game) {//the main game loop
+    Random random = new Random();//initialize the random object with random type to give a random stamina each turn
+
     while (game.Winner is null) {//run the loop until there is a winner
         Player currentPlayer = game.Players.First(player => player.Color == game.Turn);//get the player who's color is same as the current turn
-        currentPlayer.Stamina = 2;//initialize the player's stamina as 2
+        currentPlayer.Stamina = random.Next(1, 4);//initialize the player's stamina as random number between 1 and 3
+        currentPlayer.MovedNum = 0;//initialize the player's moved number in this turn as 0
 
-        if (currentPlayer.IsHuman) {
+        if (currentPlayer.IsHuman) {            
             while (game.Turn == currentPlayer.Color && currentPlayer.Stamina != 0) {//run the loop until the current player's turn is over
                 (int X, int Y)? selectionStart = null;
                 (int X, int Y)? from = game.Board.Aggressor is not null ? (game.Board.Aggressor.X, game.Board.Aggressor.Y) : null;//get the aggressor piece
@@ -131,8 +134,11 @@ void RunGameLoop(Game game) {//the main game loop
 }
 
 //render the game state with 5 variables as parameter
-//Game means the game object, playerMoved means the player who moved, selection means the selected position
-//from means the position to move from, promptPressKey means if the player need to press any key to continue
+//Game means the game object that includes the information about boards and players
+//playerMoved means the player who moved, it's passed to render the prompt of "xxx move finished"
+//selection means the selected position
+//from means the starting position
+//promptPressKey means if the player need to press any key to continue
 void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? selection = null, (int X, int Y)? from = null, bool promptPressKey = false) {
     const char BlackPiece = '○';
     const char BlackKing  = '☺';
@@ -159,7 +165,7 @@ void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? sele
     sb.AppendLine($"       A B C D E F G H");
     sb.AppendLine();
 
-    //Show the selected position (if the selection is not null)
+    //Show the selected position (if the selection is not null) with [] outside of the position
     if (selection is not null) {
         sb.Replace(" $ ", $"[{ToChar(game.Board[selection.Value.X, selection.Value.Y])}]");
     }
@@ -177,11 +183,12 @@ void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? sele
     PieceColor? tc = game.Turn;
     int mc = currentPlayer.Stamina;
     int rs = currentPlayer.Stimulant;
+    int uc = currentPlayer.UndoChances;
     PieceColor? mp = playerMoved?.Color;
     
-    string w = $"  *** {wc} wins ***\n                   \n                   \n                   ";
-    string t = $"  {tc}'s turn      \n  Stamina: {mc}    \n  Press P to use:  \n  Stimulant: {rs}  ";
-    string m = $"  {mp} moved       \n                   \n                   \n                   ";
+    string w = $"                                        \n  *** {wc} wins ***                     \n                                        ";
+    string t = $"  {tc}'s turn         Stamina: {mc}     \n  Press P to use       Stimulant: {rs}  \n  Press U to use       Undo: {uc}       \n  saves : {currentPlayer.PieceSaves.Count} \n                                        ";
+    string m = $"                                        \n  {mp} move finished                    \n  Press U to use       Undo: {uc}       ";
     sb.AppendLine(
     game.Winner is not null ? w :
     playerMoved is not null ? m :
@@ -189,11 +196,12 @@ void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? sele
 
     string p = "  Press any key to continue...";
     string s = "                              ";
+    sb.AppendLine();
     sb.AppendLine(promptPressKey ? p : s);
     Console.Write(sb);
 
-    char B(int x, int y) =>
-        (x, y) == selection ? '$' ://if the x,y is selected position, the position character is rendered as $
+    char B(int x, int y) =>//function to pre-render the pieces on the board, note them as a temporary icon such as $ and @
+        (x, y) == selection ? '$' ://if the x,y is selected position, the position character is rendered as $(and then with [] outside)
         (x, y) == from ? '@' ://make the selected from position character substituted as @, to perform the <>
         ToChar(game.Board[x, y]);//show it on the board
 
@@ -236,10 +244,20 @@ void RenderGameState(Game game, Player? playerMoved = null, (int X, int Y)? sele
                 break;
             //press P to use the stimulant, add a stamina to the human player, and render the game state
             case ConsoleKey.P:
-                if (currentPlayer.Stimulant > 0) {
+                if (currentPlayer != null && currentPlayer.Stimulant > 0) {
                     currentPlayer.Stimulant--;
                     currentPlayer.Stamina++;
                     RenderGameState(game, selection: selection, from: from);
+                }
+            break;
+            //press U to use the undo, restore the piece state, reduce the undo chances, return the stamina
+            case ConsoleKey.U:
+                if (currentPlayer != null && currentPlayer.UndoChances > 0 && currentPlayer.PieceSaves.Count > 0 && currentPlayer.MovedNum > 0) {
+                    game.RestorePieceState(currentPlayer.PieceSaves.Pop());
+                    //remove the last saved piecesave from the piecesave list and pass it to restore the piece state
+                    currentPlayer.UndoChances--;
+                    currentPlayer.MovedNum --;
+                    RenderGameState(game);
                 }
             break;
             case ConsoleKey.Enter:      return selection;//only return the selection when the user press enter

@@ -2,7 +2,7 @@
 
 //the class about board and related methods
 public class Board {
-    public List<Piece> Pieces { get; }//The list of pieces
+    public List<Piece> Pieces { get; set; }//The list of pieces
 
     public Piece? Aggressor { get; set; }//The piece that can be moving and eat the other's piece
 
@@ -101,9 +101,8 @@ public class Board {
             }
         }
 
-        return moves.Any(move => move.PieceToCapture is not null)
-            ? moves.Where(move => move.PieceToCapture is not null).ToList()
-            : moves;//return the list of moves either can capture the other's piece, or moving nearby when no piece can capture
+        return moves.Any(move => move.PieceToCapture is not null) ? moves.Where(move => move.PieceToCapture is not null).ToList() : moves;
+            //return the list of moves either can capture the other's piece, or moving nearby when no piece can capture
     }
 
     public List<Move> GetPossibleMoves(Piece piece) {//method to get all possible moves diagonal for the piece
@@ -112,23 +111,25 @@ public class Board {
         ValidateDiagonalMove(-1,  1);
         ValidateDiagonalMove( 1, -1);
         ValidateDiagonalMove( 1,  1);
-        return moves.Any(move => move.PieceToCapture is not null)
-            ? moves.Where(move => move.PieceToCapture is not null).ToList()
-            : moves;
+        return moves.Any(move => move.PieceToCapture is not null) ? moves.Where(move => move.PieceToCapture is not null).ToList() : moves;
+        //return the list of moves either can capture the other's piece, or moving nearby when no piece can capture
 
         void ValidateDiagonalMove(int dx, int dy) {//method to check if the diagonal move is valid, and add the move to the list of moves
             if (!piece.Promoted && piece.Color is Black && dy is -1) return;
-            if (!piece.Promoted && piece.Color is White && dy is 1) return;//normal piece can only move forward
+            if (!piece.Promoted && piece.Color is White && dy is 1) return;
+            //normal piece can only move forward diagonaled, else the move is invalid
+
             (int X, int Y) target = (piece.X + dx, piece.Y + dy);//initialize target position of the piece
             if (!IsValidPosition(target.X, target.Y)) return;//if the target position is not valid, return
 
-            PieceColor? targetColor = this[target.X, target.Y]?.Color;//get the color of the piece at the target position
-            if (targetColor is null) {
-                if (!IsValidPosition(target.X, target.Y)) return;
+            //if the target position is empty, add the move to the list of moves
+            PieceColor? targetColor = this[target.X, target.Y]?.Color;//get the color of the target position
+            if (targetColor is null) {//only can move an empty position
+                if (!IsValidPosition(target.X, target.Y)) return;//if the target position is not valid, return
                 Move newMove = new(piece, target);
-                moves.Add(newMove);//add the move to the list of moves if the target position is empty and valid
+                moves.Add(newMove);//add the move to the list of moves
             } 
-
+            //add an attack move to the list of moves if the target position is \empty and valid
             else if (targetColor != piece.Color) {
                 (int X, int Y) jump = (piece.X + 2 * dx, piece.Y + 2 * dy);//if the target position is not empty, calculate the jump position
                 if (!IsValidPosition(jump.X, jump.Y)) return;//if the jump position is not valid, return
