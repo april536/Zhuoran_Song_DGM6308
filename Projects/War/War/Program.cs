@@ -7,34 +7,43 @@ List<Card> deck = new List<Card>();//build a new list to store all the cards
 List<Card> discardPile = new();//a new list to store all the discarded cards
 Card playerHand = new();//player’s card
 Card dealerHand = new();//dealer’s card
+int playerScore = 0;//player’s score
+int dealerScore = 0;//dealer’s score
 
 
-try{
-        foreach (Suit suit in Enum.GetValues<Suit>())
-    {
-        foreach (Value value in Enum.GetValues<Value>())
-        {
-            deck.Add(new()
-            {
-                Suit = suit,
-                Value = value,
-            });
+try {
+    // Add 52 cards with 4 different suits combined with 13 values
+    foreach (Suit suit in Enum.GetValues<Suit>()) {
+        foreach (Value value in Enum.GetValues<Value>()) {
+            deck.Add(new Card { Suit = suit, Value = value });
         }
-    }//add 52 cards with 4 different patterns combined with 13 numbers
+    }
+
     Shuffle(deck);
-    while(deck.Count > 0){
+
+    while (true) {
         start:
         Console.Clear();
-        Console.WriteLine("Press Enter to draw a card(escape to quit):");
-        Console.WriteLine(deck.Count + "cards left in the deck");//render the hint
-        switch (Console.ReadKey(true).Key)
-        {
+        if (deck.Count ==0) {// Shuffle the discard pile back into the deck when deck is empty
+            deck.AddRange(discardPile);
+            discardPile.Clear();
+            Shuffle(deck);
+            Console.WriteLine("Deck is empty! press enter to continue or esc to exit"); 
+            if (Console.ReadKey(true).Key == ConsoleKey.Escape) return; 
+        }
+
+        Console.Clear();
+        Console.WriteLine("Press Enter to draw a card:");
+        Console.WriteLine($"{deck.Count} cards left in the deck"); // Render the hint
+    
+        switch (Console.ReadKey(true).Key) {
             case ConsoleKey.Enter:
-                playerHand = deck[^1];//get the last variable in the list as player’s hand
-                deck.RemoveAt(deck.Count - 1);//remove it from the list
-                discardPile.Add(playerHand);//add it into the discard pile
+                playerHand = deck[^1]; // Get the last card in the list as player's hand
+                deck.RemoveAt(deck.Count - 1); // Remove it from the deck
+                discardPile.Add(playerHand); // Add it into the discard pile
                 Console.WriteLine("You draw:");
                 Console.WriteLine(playerHand.Render());
+                Console.WriteLine($"Player Score: {playerScore}");
                 break;
 
             case ConsoleKey.Escape:
@@ -45,36 +54,36 @@ try{
                 goto start;
         }
 
-        Console.WriteLine("Dealer Draw a card:");//do the same for dealer
+        Console.WriteLine("Dealer draws a card:"); // Do the same for dealer
         dealerHand = deck[^1];
-        deck.RemoveAt(deck.Count - 1);//compare hands for both player
-        Console.WriteLine("Dealer draws:");
+        deck.RemoveAt(deck.Count - 1); // Remove it from the deck
+        discardPile.Add(dealerHand);
         Console.WriteLine(dealerHand.Render());
+        Console.WriteLine($"Dealer Score: {dealerScore}");
 
-        if(playerHand.Value > dealerHand.Value) Console.WriteLine("You win");
-        else if(playerHand.Value < dealerHand.Value) Console.WriteLine("You lose");
-        else Console.WriteLine("Draw");
-
-        if(deck.Count == 0) {//shuffle the card after the deck pile was run out
-            Shuffle(discardPile);
-            deck = discardPile;
-        }
-        Console.WriteLine("Press any key to Continue");
-        Console.ReadKey();
+        // Compare hands for both player and dealer
+        if (playerHand.Value > dealerHand.Value) {
+            Console.WriteLine("You win");
+            playerScore++;
+        } else if (playerHand.Value < dealerHand.Value) {
+            Console.WriteLine("You lose");
+            dealerScore++;
+        } else Console.WriteLine("Draw");
+                     
+        Console.WriteLine("Press Enter to continue");
+        if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
     }
-
-    void Shuffle(List<Card> cards) {//method to shuffle the card
-        for (int i = 0; i < cards.Count; i++)
-        {
-            int swap = Random.Shared.Next(cards.Count);
-            (cards[i], cards[swap]) = (cards[swap], cards[i]);
-        }
-    }
-}
-finally{
+} finally {
     Console.WriteLine("Game End");
 }
 
+static void Shuffle(List<Card> cards) { // Method to shuffle the cards
+    Random rand = new Random();
+    for (int i = 0; i < cards.Count; i++) {
+        int swap = rand.Next(cards.Count);
+        (cards[i], cards[swap]) = (cards[swap], cards[i]);
+    }
+}
 
 class Card
 {
@@ -108,7 +117,6 @@ class Card
         builder.AppendLine("│       │");
         builder.AppendLine($"│    {b}│");
         builder.AppendLine("└───────┘");
-        builder.AppendLine($"Score: {score}");
 
         return builder.ToString();
     }
