@@ -11,14 +11,14 @@ using System.Text;
 List<Card> remainDeck = new List<Card>();//build a new list to store all the cards
 List<Card> discardDeck = new();//a new list to store all the discarded cards
 bool closeRequested = false;
-int winningScore = 0;
+int winningScore = 5;
 State state = State.MainMenu;
 GameMode gameMode = GameMode.PVP;
 Player player1 = new Player();
 Player player2 = new Player();
 List<Player> PlayerTurns = new();
 /**********************************************************************************************************
-                                     main game flow
+                                        main game flow
 **********************************************************************************************************/
 try {
     while (!closeRequested) {
@@ -99,10 +99,12 @@ void PlayCards() {
     while (player1.Score < winningScore && player2.Score < winningScore) {
         Console.Clear();
         Console.WriteLine("Playing cards...while the game is not over");
+
         for(int i = 0; i < 2; i++) {
             if (PlayerTurns[i].isHuman) HumanTurn(PlayerTurns[i]);
             else CPUTurn(PlayerTurns[i]);
         }
+
         CountScore();
     }
     Console.WriteLine("Playing cards...and there's a winner");
@@ -112,7 +114,7 @@ void PlayCards() {
 //if the player is human, let the player to choose the skill
 void HumanTurn(Player currentPlayer) {
     Console.Clear();
-    if (gameMode == GameMode.PVP) Console.WriteLine($"{currentPlayer}'s turn! opponent please avert eyes");
+    if (gameMode == GameMode.PVP) Console.WriteLine($"{currentPlayer.Name}'s turn! opponent please avert eyes");
     else Console.WriteLine("Your turn! press Y to execute skill, or press N to use it as value card");
 
     currentPlayer.isPlayering = true;
@@ -124,7 +126,7 @@ void HumanTurn(Player currentPlayer) {
 //randomize the skill for the CPU
 void CPUTurn(Player currentPlayer) {
     Console.Clear();
-    Console.WriteLine("{currentPlayer}'s turn! Player please avert eyes");
+    Console.WriteLine($"{currentPlayer}'s turn! Player please avert eyes");
 
     RenderCards(currentPlayer.Hand);
     Thread.Sleep(1000);
@@ -144,7 +146,10 @@ void UseSkill(Player currentPlayer) {
 //count the score of the player
 void CountScore() {
     Console.Clear();
-    Console.WriteLine("Counting score...");
+    Console.WriteLine("Counting scores...Showing the finla scores of players");
+    foreach (var player in PlayerTurns) {
+        Console.WriteLine($"{player.Name}: {player.Score}");
+    }
     Console.WriteLine("Press Enter to continue");
 }
 /**********************************************************************************************************
@@ -167,6 +172,7 @@ void InitializeDeck() {
             remainDeck.Add(new Card { Suit = suit, Value = value });
         }
     }
+    Shuffle(remainDeck);
 }
 
 //refresh the deck
@@ -219,8 +225,8 @@ void ShowMainMenu() {
     Console.WriteLine("Both players draw 2 cards at start of the turn.");
     Console.WriteLine("The first card's is value card, it's value shall be count into the total value of this turn.");
     Console.WriteLine("The second card can be used as either a value card or a skill card.");
-    Console.WriteLine("   [1. Value card would be added to the value of this turn.]");
-    Console.WriteLine("   [2. Skill card would trigger the skill related to it's suit.]");
+    Console.WriteLine("   Value card would be added to the value of this turn.");
+    Console.WriteLine("   Skill card would trigger the skill related to it's suit.");
     Console.WriteLine("Player who holds the higher total value wins the turn and earns score.");
     Console.WriteLine("Game ends when one player's score reaches 10!");
     Console.WriteLine("   [1. Press 1 to stard PVP Mode]");
@@ -283,7 +289,7 @@ The player instantly wins with 10 points, regardless of other rules.
 //render the cards
 void RenderCards(List<Card> playerHands) {
     foreach (var card in playerHands) {
-        if (state == State.DealCards) Console.WriteLine(card.RenderFacedown());
+        if (state == State.DealCards) Console.WriteLine(card.RenderFaceUp());
         if (state == State.PlayCards) {
             foreach (var player in PlayerTurns) {
                 if (player.isPlayering) Console.WriteLine(card.RenderFaceUp());
@@ -334,7 +340,6 @@ class Card {
         builder.AppendLine("│       │");
         builder.AppendLine($"│    {b}│");
         builder.AppendLine("└───────┘");
-
         return builder.ToString();
     }
     
