@@ -1,4 +1,4 @@
-﻿//Reference
+//Reference
 //Card value and patern and rendering: https://github.com/dotnet/dotnet-console-games/blob/main/Projects/Blackjack/Program.cs
 /**********************************************************************************************************
                                             Preset
@@ -98,8 +98,8 @@ void ShowWinner() {
     Console.WriteLine($"{player1.Name} : {player1.Score}");
     Console.WriteLine($"{player2.Name} : {player2.Score}");
     Console.WriteLine();
-    ClearAll();
-    Console.WriteLine("Press Enter to return to the main menu");
+    Console.WriteLine("Press Enter to continue");
+    PlayerTurns.Clear();
     ChangeState(State.MainMenu);
 }
 /**********************************************************************************************************
@@ -138,9 +138,9 @@ void GameRound() {
         else CPUTurn(PlayerTurns[i]);
         Console.WriteLine($"{remainDeck.Count} cards left in the deck");
     }
-    RefreshHandCards(player1);
-    RefreshHandCards(player2);
     CountScore();
+    RefreshHand(player1);
+    RefreshHand(player2);
 }
 
 //count the score of the player
@@ -344,8 +344,6 @@ void ChangeState(State newState) {
         state = newState;
     } else if (key == ConsoleKey.Escape) {
         closeRequested = true;
-    } else {
-        Console.WriteLine("Invalid key. Please press Enter or Esc.");
     }
 }
 
@@ -375,10 +373,11 @@ void RefreshDeck() {
         Shuffle(remainDeck);
 }
 
-//refresh the hand cards
-void RefreshHandCards(Player player) {
+//refresh the cards that the player has
+void RefreshHand(Player player) {
+    if (remainDeck.Count < 2 && discardDeck.Count > 0) RefreshDeck();
+    // Shuffle the discard pile back into the remainDeck when remainDeck is empty
     discardDeck.AddRange(player.Hand);
-    if (remainDeck.Count < 2) RefreshDeck();// Shuffle the discard pile back into the remainDeck when remainDeck is empty
     player.Hand.Clear();
     player.Hand.Add(remainDeck[^1]);
     remainDeck.RemoveAt(remainDeck.Count - 1);
@@ -420,17 +419,6 @@ void PressEnterToContinue() {
     } else if (key == ConsoleKey.Escape) {
         closeRequested = true;
     }
-}
-
-//clear all the information
-void ClearAll() {
-    PlayerTurns.Clear();
-    player1.Hand.Clear();
-    player2.Hand.Clear();
-    player1.Score = 0;
-    player2.Score = 0; 
-    RoundWinnerBonus = 1;
-    RoundLoserPenalty = 0;
 }
 /**********************************************************************************************************
                                     Render
